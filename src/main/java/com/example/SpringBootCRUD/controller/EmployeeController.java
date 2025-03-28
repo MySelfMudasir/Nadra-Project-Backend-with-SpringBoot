@@ -34,6 +34,9 @@ public class EmployeeController {
         List<Employee> list;
         try {
             list = repo.findAll();
+            if(list.isEmpty()) {
+                return new ResponseEntity<List<Employee>>(HttpStatus.NO_CONTENT);
+            }
         } catch (Exception e) {
             return new ResponseEntity<List<Employee>>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -76,6 +79,9 @@ public class EmployeeController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteEmployee(@PathVariable("id") Long id) {
         try {
+            if(!repo.existsById(id)) {
+                return new ResponseEntity<String>("Employee not found", HttpStatus.NOT_FOUND);
+            }
             repo.deleteById(id); // Assuming the ID is a Long type
         } catch (Exception e) {
             return new ResponseEntity<String>("Error occurred while deleting", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -88,7 +94,5 @@ public class EmployeeController {
     public ResponseEntity<String> check() {
         return ResponseEntity.ok("API working!");
     }
-
-
 
 }
