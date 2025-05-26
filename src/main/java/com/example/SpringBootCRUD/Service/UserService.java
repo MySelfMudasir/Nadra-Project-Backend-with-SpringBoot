@@ -20,7 +20,7 @@ public class UserService {
     private UserRepository userRepository;
 
 
-    public ResponseEntity<String> saveAccount(String email, String accountType, String cnic, String cnicIssueDate, String mobile, String recordType, List<UserSchema> subRecords) {
+    public ResponseEntity<String> saveAccount(String email, String accountType, String cnic, String cnicIssueDate, String mobile, String recordType, String ntn, List<UserSchema> subRecords) {
         // Create a new UserSchema object and set the values
 
         // Get the next ID from the repository
@@ -38,6 +38,7 @@ public class UserService {
             mainRecord.setMobile(mobile.trim());
             mainRecord.setStatus("P".trim()); // Use uppercase
             mainRecord.setRecordType(recordType.trim()); // <- make sure this is being called!
+            mainRecord.setNtn(ntn.trim()); // <- make sure this is being called!
 
             // Convert String date to LocalDate
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -58,6 +59,7 @@ public class UserService {
                     sub.setId(subNextId); // set the ID
                     sub.setSubAccountId(nextId); // set the ID
                     mainRecord.setRecordType(recordType.trim()); // <- check if recordType is null
+                    mainRecord.setNtn(ntn.trim()); // <- check if recordType is null
                     mainRecord.setCnic(cnic);
                     sub.setStatus("P"); // Also use uppercase
                     mainRecord.setCnicIssueDate(cnicIssueDateConverted);
@@ -66,24 +68,64 @@ public class UserService {
             }
         } catch (Exception e) {
             // Return a 500 response if there was an error saving
-            return new ResponseEntity<>("Error: User addition failed. " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Error: Account addition failed. " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         // Return a success response if everything went well
-        return new ResponseEntity<>("User added successfully", HttpStatus.OK);
+        return new ResponseEntity<>("Account added successfully", HttpStatus.OK);
     }
 
 
 
 
-public List<UserSchema> findAllUsers() {
-    List<UserSchema> primaryRecords = userRepository.findByRecordTypeNative("primary");
-    for (UserSchema primary : primaryRecords) {
-        List<UserSchema> subRecords = userRepository.findBySubAccountIdNative(primary.getId());
-        primary.setSubRecords(subRecords);
+    public List<UserSchema> findAllUsers() {
+        List<UserSchema> primaryRecords = userRepository.findByRecordTypeNative("primary");
+        for (UserSchema primary : primaryRecords) {
+            List<UserSchema> subRecords = userRepository.findBySubAccountIdNative(primary.getId());
+            primary.setSubRecords(subRecords);
+
+            // Normalize primary + sub-records
+            normalizeUserSchema(primary);
+        }
+        return primaryRecords;
     }
-    return primaryRecords;
-}
+
+
+
+
+    private void normalizeUserSchema(UserSchema user) {
+        // Normalize accountType
+        if (user.getAccountType() != null) {
+            switch (user.getAccountType().toLowerCase()) {
+                case "i":
+                    user.setAccountType("individual");
+                    break;
+                case "c":
+                    user.setAccountType("corporate");
+                    break;
+            }
+        }
+
+        // Normalize status
+        if (user.getStatus() != null) {
+            switch (user.getStatus().toUpperCase()) {
+                case "P":
+                    user.setStatus("pending");
+                    break;
+                case "A":
+                    user.setStatus("active");
+                    break;
+            }
+        }
+
+        // Normalize sub-records recursively
+        if (user.getSubRecords() != null) {
+            for (UserSchema sub : user.getSubRecords()) {
+                normalizeUserSchema(sub);
+            }
+        }
+    }
+
 
 
 
@@ -97,12 +139,12 @@ public List<UserSchema> findAllUsers() {
 
 
 
-    public ResponseEntity<String> updateAccount(Long id, String email, String accountType, String cnic, String cnicIssueDateStr, String mobile, String recordType, List<UserSchema> subRecords) {
+    public ResponseEntity<String> updateAccount(Long id, String email, String accountType, String cnic, String cnicIssueDateStr, String mobile, String recordType, String ntn, List<UserSchema> subRecords) {
         try {
             LocalDate cnicIssueDate = LocalDate.parse(cnicIssueDateStr);
 
             // 1. Update parent record
-            int updated = userRepository.updateUserById(id, email, accountType, cnic, cnicIssueDate, mobile, recordType);
+            int updated = userRepository.updateUserById(id, email, accountType, cnic, cnicIssueDate, mobile, recordType, ntn);
             if (updated == 0) {
                 return ResponseEntity.badRequest().body("Parent record not found.");
             }
@@ -118,7 +160,8 @@ public List<UserSchema> findAllUsers() {
                             sub.getCnic(),
                             subCnicIssueDate,
                             sub.getMobile(),
-                            sub.getRecordType()
+                            sub.getRecordType(),
+                            sub.getNtn()
                     );
 
                     // If update fails, optional: insert new sub-record
@@ -129,7 +172,28 @@ public List<UserSchema> findAllUsers() {
                 }
             }
 
-            return ResponseEntity.ok("Parent and sub-records updated.");
+            return ResponseEntity.ok("Parent and sub-records updated");
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+
+
+
+
+    public ResponseEntity<String> resetStatus(Long id, String cnic) {
+        try {
+
+            // 1. Update parent record
+            int updated = userRepository.resetStatusByCnic("P", cnic); // Use a valid value like "A"
+
+            if (updated == 0) {
+                return ResponseEntity.ok("cnic not found");
+            }
+
+            return ResponseEntity.ok("status updated");
 
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());

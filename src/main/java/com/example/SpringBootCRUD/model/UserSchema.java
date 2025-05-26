@@ -40,6 +40,15 @@ public class UserSchema {
     @Column(name = "STATUS")
     private String status;
 
+    @Column(name = "OTP")
+    private String otp;
+
+    @Column(name = "NTN")
+    private String ntn;
+
+    @Column(name = "PIN")
+    private String pin;
+
 
 
 

@@ -4,6 +4,7 @@ import com.example.SpringBootCRUD.model.UserSchema;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import javax.transaction.Transactional;
 import java.time.LocalDate;
@@ -31,14 +32,22 @@ public interface UserRepository extends JpaRepository<UserSchema, Long> {
     //updateAccountById
     @Modifying
     @Transactional
-    @Query("UPDATE UserSchema u SET u.email = :email, u.accountType = :accountType, u.cnic = :cnic, u.cnicIssueDate = :cnicIssueDate, u.mobile = :mobile, u.recordType = :recordType WHERE u.id = :id")
-    int updateUserById(Long id, String email, String accountType, String cnic, LocalDate cnicIssueDate, String mobile, String recordType);
+    @Query("UPDATE UserSchema u SET u.email = :email, u.accountType = :accountType, u.cnic = :cnic, u.cnicIssueDate = :cnicIssueDate, u.mobile = :mobile, u.recordType = :recordType, u.ntn = :ntn WHERE u.id = :id")
+    int updateUserById(Long id, String email, String accountType, String cnic, LocalDate cnicIssueDate, String mobile, String recordType, String ntn);
 
     // Sub-records might not have all fields, so we update what’s available
     @Modifying
     @Transactional
-    @Query("UPDATE UserSchema u SET u.cnic = :cnic, u.cnicIssueDate = :cnicIssueDate, u.mobile = :mobile, u.recordType = :recordType WHERE u.id = :id")
-    int updateSubRecordById(Long id, String cnic, LocalDate cnicIssueDate, String mobile, String recordType);
+    @Query("UPDATE UserSchema u SET u.cnic = :cnic, u.cnicIssueDate = :cnicIssueDate, u.mobile = :mobile, u.recordType = :recordType, u.ntn = :ntn WHERE u.id = :id")
+    int updateSubRecordById(Long id, String cnic, LocalDate cnicIssueDate, String mobile, String recordType, String ntn);
+
+
+    //resetStatusById
+    @Modifying
+    @Transactional
+    @Query("UPDATE UserSchema u SET u.status = :status WHERE u.cnic = :cnic AND u.status = 'A'")
+    int resetStatusByCnic(@Param("status") String status, @Param("cnic") String cnic);
+
 
 
 

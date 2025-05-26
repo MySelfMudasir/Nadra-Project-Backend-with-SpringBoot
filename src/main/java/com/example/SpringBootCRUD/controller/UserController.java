@@ -53,7 +53,7 @@ public class UserController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String cnicIssueDateStr = userschema.getCnicIssueDate().format(formatter); // Convert LocalDate to String
 
-        return userService.saveAccount(userschema.getEmail(), userschema.getAccountType(), userschema.getCnic(), cnicIssueDateStr, userschema.getMobile(), userschema.getRecordType(), userschema.getSubRecords());
+        return userService.saveAccount(userschema.getEmail(), userschema.getAccountType(), userschema.getCnic(), cnicIssueDateStr, userschema.getMobile(), userschema.getRecordType(), userschema.getNtn(), userschema.getSubRecords());
     }
 
 
@@ -104,7 +104,20 @@ public class UserController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String cnicIssueDateStr = userschema.getCnicIssueDate().format(formatter); // Convert LocalDate to String
 
-        return userService.updateAccount(userschema.getId(), userschema.getEmail(), userschema.getAccountType(), userschema.getCnic(), cnicIssueDateStr, userschema.getMobile(), userschema.getRecordType(), userschema.getSubRecords());
+        return userService.updateAccount(userschema.getId(), userschema.getEmail(), userschema.getAccountType(), userschema.getCnic(), cnicIssueDateStr, userschema.getMobile(), userschema.getRecordType(), userschema.getNtn(), userschema.getSubRecords());
+    }
+
+
+
+
+    @PutMapping("/resetStatus")
+    public ResponseEntity<?> resetStatus(@RequestBody UserSchema userschema) {
+
+        System.out.println("=================================================");
+        System.out.println("Received request to update user: " + userschema);
+        System.out.println("=================================================");
+
+        return userService.resetStatus(userschema.getId(),userschema.getCnic());
     }
 
 
